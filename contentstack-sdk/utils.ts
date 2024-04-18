@@ -47,7 +47,9 @@ const setRegion = (): Region => {
 // set LivePreview config
 const setLivePreviewConfig = (): LivePreview => {
   if (!isLpConfigValid())
-    throw new Error("Your LP config is set to true. Please make you have set all required LP config in .env");
+    throw new Error(
+      "Your LP config is set to true. Please make you have set all required LP config in .env"
+    );
   return {
     management_token: CONTENTSTACK_MANAGEMENT_TOKEN as string,
     enable: CONTENTSTACK_LIVE_PREVIEW === "true",

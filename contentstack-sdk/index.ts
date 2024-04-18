@@ -18,6 +18,7 @@ type GetEntryByUrl = {
   contentTypeUid: string;
   referenceFieldPath: string[] | undefined;
   jsonRtePath: string[] | undefined;
+  host?: string | undefined;
 };
 
 const { publicRuntimeConfig } = getConfig();
@@ -29,7 +30,7 @@ let customHostBaseUrl = envConfig.CONTENTSTACK_API_HOST as string;
 customHostBaseUrl = customHostUrl(customHostBaseUrl);
 
 // SDK initialization
-const Stack = initializeContentStackSdk();
+export const Stack = initializeContentStackSdk();
 
 // set host url only for custom host or non prod base url's
 if (isValidCustomHostUrl(customHostBaseUrl)) {
@@ -48,7 +49,7 @@ ContentstackLivePreview.init({
     environment: envConfig.CONTENTSTACK_ENVIRONMENT,
   },
   enable: envConfig.CONTENTSTACK_LIVE_PREVIEW === "true",
-  ssr: false,
+  ssr: true,
 })?.catch((err) => console.error(err));
 
 export const { onEntryChange } = ContentstackLivePreview;
@@ -107,12 +108,13 @@ export const getEntryByUrl = ({
   entryUrl,
   referenceFieldPath,
   jsonRtePath,
+  host = "",
 }: GetEntryByUrl) => {
   return new Promise((resolve, reject) => {
-    const blogQuery = Stack.ContentType(contentTypeUid).Query();
-    if (referenceFieldPath) blogQuery.includeReference(referenceFieldPath);
-    blogQuery.toJSON();
-    const data = blogQuery.where("url", `${entryUrl}`).find();
+    const query = Stack.ContentType(contentTypeUid).Query();
+    if (referenceFieldPath) query.includeReference(referenceFieldPath);
+    query.toJSON();
+    const data = query.where("url", `${entryUrl}`).find();
     data.then(
       (result) => {
         jsonRtePath &&
@@ -124,7 +126,7 @@ export const getEntryByUrl = ({
         resolve(result[0]);
       },
       (error) => {
-        console.error(error);
+        console.error("Error", error);
         reject(error);
       }
     );

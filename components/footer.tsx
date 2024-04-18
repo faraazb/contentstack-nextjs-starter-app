@@ -41,9 +41,9 @@ export default function Footer({ footer, entries }: {footer: FooterProps, entrie
     }
   }
 
-  useEffect(() => {
-    onEntryChange(() => fetchData());
-  }, [footer]);
+  // useEffect(() => {
+  //   onEntryChange(() => fetchData());
+  // }, [footer]);
 
   const footerData = getFooter ? getFooter : undefined;
 

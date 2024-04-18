@@ -1,53 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { onEntryChange } from '../contentstack-sdk';
-import RenderComponents from '../components/render-components';
-import { getPageRes } from '../helper';
+import { GetStaticPropsContext } from 'next';
 import Skeleton from 'react-loading-skeleton';
+import RenderComponents from '../components/render-components';
+import { Stack } from '../contentstack-sdk';
+import { getPageRes } from '../helper';
 import { Props } from "../typescript/pages";
 
 export default function Page(props: Props) {
-  const { page, entryUrl } = props;
-  const [getEntry, setEntry] = useState(page);
+  const { page } = props;
 
-  async function fetchData() {
-    try {
-      const entryRes = await getPageRes(entryUrl);
-      if (!entryRes) throw new Error('Status code 404');
-      setEntry(entryRes);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  useEffect(() => {
-    onEntryChange(() => fetchData());
-  }, [page]);
-
-  return getEntry.page_components ? (
+  return page ? (
     <RenderComponents
-      pageComponents={getEntry.page_components}
+      pageComponents={page.page_components}
       contentTypeUid='page'
-      entryUid={getEntry.uid}
-      locale={getEntry.locale}
+      entryUid={page.uid}
+      locale={page.locale}
     />
   ) : (
     <Skeleton count={3} height={300} />
   );
 }
 
-export async function getServerSideProps({params}: any) {
-  try {
-      const entryUrl = params.page.includes('/') ? params.page:`/${params.page}`
-      const entryRes = await getPageRes(entryUrl);
-      if (!entryRes) throw new Error('404');
-      return {
-        props: {
-          entryUrl: entryUrl,
-          page: entryRes,
-        },
-      };
+export async function getStaticProps(context: GetStaticPropsContext) {
+  const { previewData, params } = context;
+  console.log("Context", context)
 
-  } catch (error) {
+  if (typeof params === "undefined") {
     return { notFound: true };
+  }
+  try {
+    if (typeof previewData === "object" && "live_preview" in previewData) {
+      const livePreviewData = previewData as { content_type_uid: string, live_preview: string, entry_uid: string; };
+      // provide live preview hash to Contentstack SDK
+      Stack.livePreviewQuery(livePreviewData)
+    }
+    else {
+      // reset hash if live preview hash is not found in preview data
+      Stack.livePreviewQuery({ live_preview: "", content_type_uid: "" })
+    }
+    const pageUrl = params.page !== "home" ? `/${params.page}` : "/"
+    const entryRes = await getPageRes(pageUrl);
+    return {
+      props: {
+        entryUrl: pageUrl,
+        page: entryRes,
+      },
+    };
+  } catch (error) {
+    console.log(error)
+    return { notFound: true };
+  }
+}
+
+export async function getStaticPaths() {
+  return {
+    paths: [
+      {
+        params: {
+          page: "home",
+        }
+      },
+      {
+        params: {
+          page: "contact-us"
+        }
+      },
+      {
+        params: {
+          page: "about-us"
+        }
+      }
+    ],
+    fallback: false,
   }
 }

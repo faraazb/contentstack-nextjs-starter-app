@@ -1,42 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import moment from 'moment';
 import parse from 'html-react-parser';
-import { getPageRes, getBlogPostRes } from '../../helper';
-import { onEntryChange } from '../../contentstack-sdk';
+import moment from 'moment';
+import { GetStaticPropsContext } from 'next';
 import Skeleton from 'react-loading-skeleton';
-import RenderComponents from '../../components/render-components';
 import ArchiveRelative from '../../components/archive-relative';
-import { Page, BlogPosts, PageUrl } from "../../typescript/pages";
+import RenderComponents from '../../components/render-components';
+import { Stack } from '../../contentstack-sdk';
+import { getBlogListRes, getBlogPostRes, getPageRes } from '../../helper';
+import { BlogPosts, Page, PageUrl } from "../../typescript/pages";
 
 
-export default function BlogPost({ blogPost, page, pageUrl }: {blogPost: BlogPosts, page: Page, pageUrl: PageUrl}) {
-  
-  const [getPost, setPost] = useState({ banner: page, post: blogPost });
-  async function fetchData() {
-    try {
-      const entryRes = await getBlogPostRes(pageUrl);
-      const bannerRes = await getPageRes('/blog');
-      if (!entryRes || !bannerRes) throw new Error('Status: ' + 404);
-      setPost({ banner: bannerRes, post: entryRes });
-    } catch (error) {
-      console.error(error);
-    }
-  }
+export default function BlogPost({ post, page: page }: { post: BlogPosts, page: Page, pageUrl: PageUrl }) {
 
-  useEffect(() => {
-    onEntryChange(() => fetchData());
-  }, [blogPost]);
-
-  const { post, banner } = getPost;
   return (
     <>
-      {banner ? (
+      {page ? (
         <RenderComponents
-          pageComponents={banner.page_components}
+          pageComponents={page.page_components}
           blogPost
           contentTypeUid='blog_post'
-          entryUid={banner?.uid}
-          locale={banner?.locale}
+          entryUid={page?.uid}
+          locale={page?.locale}
         />
       ) : (
         <Skeleton height={400} />
@@ -70,9 +53,9 @@ export default function BlogPost({ blogPost, page, pageUrl }: {blogPost: BlogPos
         </article>
         <div className='blog-column-right'>
           <div className='related-post'>
-            {banner && banner?.page_components[2].widget ? (
-              <h2 {...banner?.page_components[2].widget.$?.title_h2 as {}}>
-                {banner?.page_components[2].widget.title_h2}
+            {page && page?.page_components[2].widget ? (
+              <h2 {...page?.page_components[2].widget.$?.title_h2 as {}}>
+                {page?.page_components[2].widget.title_h2}
               </h2>
             ) : (
               <h2>
@@ -93,21 +76,46 @@ export default function BlogPost({ blogPost, page, pageUrl }: {blogPost: BlogPos
     </>
   );
 }
-export async function getServerSideProps({ params }: any) {
+
+export async function getStaticProps(context: GetStaticPropsContext) {
+  const page = await getPageRes('/blog');
+  const { params, previewData } = context;
+  if (!params) {
+    return { notFound: true };
+  }
   try {
-    const page = await getPageRes('/blog');
-    const posts = await getBlogPostRes(`/blog/${params.post}`);
-    if (!page || !posts) throw new Error('404');
+    if (typeof previewData === "object" && "live_preview" in previewData) {
+      // provide live preview hash to Contentstack SDK
+      const livePreviewData = previewData as { content_type_uid: string, live_preview: string, entry_uid: string; };
+      console.log("live previewing")
+      Stack.livePreviewQuery(livePreviewData)
+    }
+    else {
+      // reset hash if live preview hash is not found in preview data
+      Stack.livePreviewQuery({ live_preview: "", content_type_uid: "" })
+    }
+    const post = await getBlogPostRes(`/blog/${params.post}`);
+    console.log("blog post", post)
+    if (!page || !post) throw new Error('404');
 
     return {
       props: {
         pageUrl: `/blog/${params.post}`,
-        blogPost: posts,
+        post,
         page,
       },
     };
   } catch (error) {
     console.error(error);
     return { notFound: true };
+  }
+}
+
+export async function getStaticPaths() {
+  const posts = await getBlogListRes();
+  const postsUrls = posts.map((post) => ({ params: { post: post.url } }))
+  return {
+    paths: postsUrls,
+    fallback: true,
   }
 }

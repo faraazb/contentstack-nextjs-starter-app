@@ -43,7 +43,10 @@ export const getAllEntries = async (): Promise<Page[]> => {
   return response[0];
 };
 
-export const getPageRes = async (entryUrl: string): Promise<Page> => {
+export const getPageRes = async (
+  entryUrl: string,
+  host?: string
+): Promise<Page> => {
   const response = (await getEntryByUrl({
     contentTypeUid: "page",
     entryUrl,
@@ -53,6 +56,7 @@ export const getPageRes = async (entryUrl: string): Promise<Page> => {
       "page_components.section_with_buckets.buckets.description",
       "page_components.section_with_html_code.description",
     ],
+    host,
   })) as Page[];
   liveEdit && addEditableTags(response[0], "page", true);
   return response[0];
@@ -75,6 +79,7 @@ export const getBlogPostRes = async (entryUrl: string): Promise<BlogPosts> => {
     entryUrl,
     referenceFieldPath: ["author", "related_post"],
     jsonRtePath: ["body", "related_post.body"],
+    // host: ""
   })) as BlogPosts[];
   liveEdit && addEditableTags(response[0], "blog_post", true);
   return response[0];

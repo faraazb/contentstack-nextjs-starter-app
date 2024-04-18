@@ -46,11 +46,11 @@ export default function Header({ header, entries }: {header: HeaderProps, entrie
     }
   }
 
-  useEffect(() => {
-    if (header && entries) {
-      onEntryChange(() => fetchData());
-    }
-  }, [header]);
+  // useEffect(() => {
+  //   if (header && entries) {
+  //     onEntryChange(() => fetchData());
+  //   }
+  // }, [header]);
   const headerData = getHeader ? getHeader : undefined;
   
   return (

@@ -1,30 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { onEntryChange } from '../../contentstack-sdk';
 import BlogList from '../../components/blog-list';
 import RenderComponents from '../../components/render-components';
-import { getPageRes, getBlogListRes } from '../../helper';
+import { getBlogListRes, getPageRes } from '../../helper';
 
-import ArchiveRelative from '../../components/archive-relative';
+import { GetStaticPropsContext } from 'next';
 import Skeleton from 'react-loading-skeleton';
-import { Page, PostPage, PageUrl, Context } from "../../typescript/pages";
+import ArchiveRelative from '../../components/archive-relative';
+import { Page, PageUrl, PostPage } from "../../typescript/pages";
 
 
-export default function Blog({ page, posts, archivePost, pageUrl }: {page: Page, posts: PostPage, archivePost: PostPage, pageUrl: PageUrl}) {
+export default function Blog({ page, posts, archivePost, pageUrl }: { page: Page, posts: PostPage, archivePost: PostPage, pageUrl: PageUrl }) {
 
-  const [getBanner, setBanner] = useState(page);
-  async function fetchData() {
-    try {
-      const bannerRes = await getPageRes(pageUrl);
-      if (!bannerRes) throw new Error('Status code 404');
-      setBanner(bannerRes);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  const getBanner = page;
 
-  useEffect(() => {
-    onEntryChange(() => fetchData());
-  }, []);
   return (
     <>
       {getBanner.page_components ? (
@@ -63,9 +50,9 @@ export default function Blog({ page, posts, archivePost, pageUrl }: {page: Page,
   );
 }
 
-export async function getServerSideProps(context: Context) {
+export async function getStaticProps(context: GetStaticPropsContext) {
   try {
-    const page = await getPageRes(context.resolvedUrl);
+    const page = await getPageRes("/blog");
     const result = await getBlogListRes();
 
     const archivePost = [] as any;
@@ -79,7 +66,7 @@ export async function getServerSideProps(context: Context) {
     });
     return {
       props: {
-        pageUrl: context.resolvedUrl,
+        pageUrl: "/blog",
         page,
         posts,
         archivePost,
